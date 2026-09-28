@@ -2,7 +2,6 @@
 
 Backend del proyecto **POS Móvil Multiplataforma**. Incluye la API REST, el esquema MySQL, la autenticación, las reglas de negocio de ventas e inventario y un módulo de referencia para persistencia y sincronización offline con IndexedDB/Dexie.
 
-> Este repositorio corresponde al trabajo del **Desarrollador 2**. No incluye la interfaz visual completa ni el service worker de la PWA; esas piezas se integran desde el frontend del Desarrollador 1.
 
 ---
 
@@ -496,6 +495,3 @@ Aprueba el dispositivo con `npm run device:provision` y envía `X-Device-Id` y `
 
 El paquete está marcado actualmente como `UNLICENSED`. Antes de publicarlo como software reutilizable, agrega una licencia explícita elegida por los responsables del proyecto.
 
----
-
-Proyecto académico de residencia profesional orientado a un POS móvil offline-first.
