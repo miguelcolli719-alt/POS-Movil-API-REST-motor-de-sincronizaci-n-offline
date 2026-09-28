@@ -1,0 +1,143 @@
+﻿### Peticiones de prueba del POS mÃ³vil (extensiÃ³n REST Client de VS Code)
+### Instalar: humao.rest-client | Clic en "Send Request" sobre cada bloque.
+
+### 0) Salud del servidor
+GET http://localhost:3000/health
+
+### 0.1) Readiness (debe ser 200 tras migrar/seed)
+GET http://localhost:3000/ready
+
+### 1) Login admin (guarda tokens para los bloques siguientes)
+# @name login
+POST http://localhost:3000/api/v1/auth/login
+Content-Type: application/json
+
+{"usuario": "admin", "password": "Admin123!"}
+
+### 2) Pull inicial (sin cursor = descarga completa; el cursor es OPCIONAL)
+@accessToken = {{login.response.body.data.accessToken}}
+GET http://localhost:3000/api/v1/productos/pull
+Authorization: Bearer {{accessToken}}
+
+### 2.1) Pull incremental: pega aquÃ­ el nextCursor de la respuesta anterior.
+#       Formato del cursor: <AAAA-MM-DD HH:MM:SS>|<id>
+# GET http://localhost:3000/api/v1/productos/pull?cursor=2026-08-23%2022%3A00%3A00%7C0
+
+### 2.2) Listado paginado en lÃ­nea
+GET http://localhost:3000/api/v1/productos?page=1&pageSize=50
+Authorization: Bearer {{accessToken}}
+
+### 2.3) Estado de sincronizaciÃ³n del dispositivo
+GET http://localhost:3000/api/v1/sincronizacion/status
+Authorization: Bearer {{accessToken}}
+
+### 2.4) Inventario por sucursal
+GET http://localhost:3000/api/v1/inventario?sucursalId=1
+Authorization: Bearer {{accessToken}}
+
+### 3) Refresh: rota tokens (el viejo queda revocado)
+@refreshToken = {{login.response.body.data.refreshToken}}
+POST http://localhost:3000/api/v1/auth/refresh
+Content-Type: application/json
+
+{"refreshToken": "{{refreshToken}}"}
+
+### 4) Reuso del refresh viejo => 401 + sesiones activas revocadas (seguridad T14)
+POST http://localhost:3000/api/v1/auth/refresh
+Content-Type: application/json
+
+{"refreshToken": "{{refreshToken}}"}
+
+### 5) Push de venta de ejemplo (requiere token CON dispositivoId:
+###    aprovisiona DEV-001 y envía identificador + secreto)
+# @name loginDisp
+POST http://localhost:3000/api/v1/auth/login
+Content-Type: application/json
+
+{"usuario": "admin", "password": "Admin123!", "dispositivoIdentificador": "DEV-001", "dispositivoSecret": "REEMPLAZAR-POR-SECRETO-DE-32-CARACTERES"}
+
+### Push usando ese token
+@tokDisp = {{loginDisp.response.body.data.accessToken}}
+POST http://localhost:3000/api/v1/ventas/push
+Authorization: Bearer {{tokDisp}}
+Content-Type: application/json
+
+{
+  "ventas": [
+    {
+      "uuid": "11111111-2222-3333-4444-555555555555",
+      "folioLocal": "DEV-001-000001",
+      "fechaCreacionLocal": "2026-08-23T22:00:00.000Z",
+      "metodoPagoId": 1,
+      "totalesEsperadosCents": {"subtotal": 3600, "descuento": 0, "impuesto": 576, "total": 4176},
+      "items": [
+        {"productoId": 137, "productoVersion": 1, "cantidad": 2}
+      ]
+    }
+  ]
+}
+
+### 6) ReenvÃ­o del MISMO uuid => status "duplicado" (idempotencia T16)
+POST http://localhost:3000/api/v1/ventas/push
+Authorization: Bearer {{tokDisp}}
+Content-Type: application/json
+
+{
+  "ventas": [
+    {
+      "uuid": "11111111-2222-3333-4444-555555555555",
+      "folioLocal": "DEV-001-000001",
+      "fechaCreacionLocal": "2026-08-23T22:00:00.000Z",
+      "metodoPagoId": 1,
+      "totalesEsperadosCents": {"subtotal": 3600, "descuento": 0, "impuesto": 576, "total": 4176},
+      "items": [
+        {"productoId": 137, "productoVersion": 1, "cantidad": 2}
+      ]
+    }
+  ]
+}
+
+
+### ============================================================
+### ABM DE CATALOGO (solo administrador - T30)
+### Tras crear, ejecuta el bloque 2 (pull) y veras el producto nuevo.
+### ============================================================
+
+### 7) Categorias disponibles (para elegir categoriaId)
+GET http://localhost:3000/api/v1/categorias
+Authorization: Bearer {{accessToken}}
+
+### 8) Alta de producto (201; guarda el id de la respuesta)
+# @name crearProd
+POST http://localhost:3000/api/v1/productos
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "sku": "DEMO-003",
+  "nombre": "Refresco Zero 600 ml",
+  "precioBase": 21.50,
+  "categoriaId": 1,
+  "impuestoId": 1,
+  "unidadMedida": "pza",
+  "codigosBarras": [{"codigo": "7501234567890", "tipo": "EAN13"}]
+}
+
+### 9) Editar parcialmente (usa el id del paso 8; sube la version)
+@productoId = {{crearProd.response.body.data.id}}
+PUT http://localhost:3000/api/v1/productos/{{productoId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "precioBase": 22.00,
+  "nombre": "Refresco Zero 600 ml (precio nuevo)"
+}
+
+### 10) Borrado logico (activo=0; repetir devuelve yaInactivo=true)
+DELETE http://localhost:3000/api/v1/productos/{{productoId}}
+Authorization: Bearer {{accessToken}}
+
+### 10.1) Verificar que la baja llego al pull incremental
+GET http://localhost:3000/api/v1/productos/pull
+Authorization: Bearer {{accessToken}}

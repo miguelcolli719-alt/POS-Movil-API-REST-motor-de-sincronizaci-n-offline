@@ -1,0 +1,18 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Entorno y secretos (NUNCA commitear)
+.env
+.env.*
+!.env.example
+
+# Logs y coberturas
+logs/
+*.log
+coverage/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini

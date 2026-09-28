@@ -1,0 +1,39 @@
+{
+  "name": "pos-movil-backend",
+  "version": "0.1.0",
+  "description": "API REST y motor de sincronización del POS móvil PWA offline-first (Desarrollador 2)",
+  "main": "src/server.js",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development node --watch src/server.js",
+    "start": "cross-env NODE_ENV=production node src/server.js",
+    "test": "cross-env NODE_ENV=test RUN_MYSQL_INTEGRATION=false jest --runInBand",
+    "test:integration": "cross-env NODE_ENV=test RUN_MYSQL_INTEGRATION=true jest --runInBand",
+    "test:coverage": "cross-env NODE_ENV=test RUN_MYSQL_INTEGRATION=false jest --runInBand --coverage",
+    "lint": "eslint .",
+    "seed": "node database/scripts/seed.js",
+    "device:provision": "node database/scripts/provision-device.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.5",
+    "pino": "^9.5.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "cross-env": "^7.0.3",
+    "eslint": "^10.9.1",
+    "globals": "^15.14.0",
+    "jest": "^30.4.2",
+    "supertest": "^7.0.0"
+  }
+}
